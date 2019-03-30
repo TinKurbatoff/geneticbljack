@@ -1,5 +1,8 @@
-import random, copy, dealer, curses, time, subprocess, os, sys, json, born_next_gen
+import random, copy, dealer, curses, time, subprocess, os, sys, json, born_next_gen, time
 
+# The idea of the blackjack code is got from https://trinket.io/python3/9c2e46209e
+# The optimal strategy was described (as well as a genetic approach) at 
+#     https://towardsdatascience.com/winning-blackjack-using-machine-learning-681d924f197c
 
 class bcolors:
     HEADER = '\033[95m'
@@ -32,7 +35,7 @@ def whait_for_keys_press(prompt, key1, key2, key3, key4):
         break  
       time.sleep(0.1)
     return Key_pressed 
-
+# table with well-known optimal strategy, not used for work, for debugging only.
 strategy = \
 [[115,115,115,115,115,115,115,115,115,115],\
  [115,115,115,115,115,115,115,115,115,115],\
@@ -64,22 +67,26 @@ strategy = \
 
 # this section checks if the player would like to play with betting enabled or not.  If they choose yes,
 # then 'betting' = True, and a set of 'if betting = True:' statements throughout the program turn on
-generations = max(int(sys.argv[3]),1) #  ----------> number of generations 
+try: 
+  generations = max(int(sys.argv[3]),1) #  ----------> number of generations 
+except:
+  print("Use:\n python3 main_g.py [games per specie] [species in every generation] [numebr of generations]")
+  exit()
 cycles=max(int(sys.argv[2]),1)    #  ---------->  number of species
 for genx in range(generations):
   print("Generation: ",genx)
   species = [i for i in range(cycles)]
   best_species=[0,1,2]
-  average=0
-  av_max=0
-  av_min=0
+  average=0 # average earning by the generation
+  av_max=0 # max arned by the generation
+  av_min=0 # minimum earned by the generation
   #print("Played ",cycles," species.")
   for av in range(cycles):
     player_wallet = 0
-    wallet_max=0
-    wallet_min=0
-    xx = 0
-    yyy=0
+    wallet_max=0 # maximum funds earned with this specie
+    wallet_min=0 # minimum funds earned with specie
+    played_cards = 0 # counts of every card played with dealer
+    Games_count=0 # games played with current specie
     # ============== GENETIC ALGORYTM ===================
     # read table ("specie") with strategy of playing
     #with open("./species/specie@.json", "r") as f: # optimal strategy
@@ -126,7 +133,7 @@ for genx in range(generations):
       dealer_hand.append(dealer.draw_card(playing_deck)) #dealer get card
       dealer_score = dealer.compute_score(dealer_hand) # dealer score calculation
       player_score = dealer.compute_score(player_hand) # player score calculation
-      yyy=yyy+1
+      Games_count=Games_count+1
       # here the player places their bet
       player_bet = 5 # standard bet $5
       #if player_wallet < player_bet:
@@ -174,7 +181,7 @@ for genx in range(generations):
       player_wins = None
       hit_played = False
       dd_choosen = False
-      #print("Next game #"+str(yyy))
+      #print("Next game #"+str(Games_count))
       played_times = played_times - 1     
       while in_game:
         # >>> If player have initial black jack (no insurance!)
@@ -201,26 +208,26 @@ for genx in range(generations):
           #print(player_hand," ",row_index ," ",column_index)
         else: 
           row_index = 20 - player_score 
-        #print("rw:",row_index,"cl:",column_index)
+        #print("rw:",row_index,"cl:",column_index) # checking what was selected from playing table
         # optimal strategy
-        #os.write(1, b"\r")
+        #os.write(1, b"\r") 
         #os.write(1, b".")
-        #if (yyy % int(int(sys.argv[1])/500)) == 0: os.write(1, b".")  ### ===== PRINTING DOTS!!!
+        #if (Games_count % int(int(sys.argv[1])/500)) == 0: os.write(1, b".")  ### ===== JUST PRINTING DOTS ON SCREEN!!!
           #os.write(1, bytes(str(played_times / 1000) + "\r","UTF-8"))
         #  played_times = played_times
         # =========== PLAYING BY STRATEGY ==============================
         try:
-          keep_going = strategy[row_index][column_index]  # ====> optimal strategy
-          xx = xx +1 
+          keep_going = strategy[row_index][column_index]  # ====> optimal strategy from specie table
+          played_cards = played_cards + 1 
           #keep_going = play_decision[random.randint(0,2)] # ===>  random strategy
         except IndexError:
           print(player_hand," ",dealer_hand)
           print(row_index," ",column_index) 
         except:
           print(sys.exc_info()[2],"!!!")        
-        #print(keep_going)
+        #print(keep_going)  # debug data on screen
         #os.write(1, bytes("\r"+str(row_index)+" "+str(column_index)+" kg:"+str(keep_going)+ " "\
-        #+ str(xx)+" "+str(player_score)+" dd:"+str(dd_choosen)+" h:"+str(hit_played),"UTF-8"))
+        #+ str(played_cards)+" "+str(player_score)+" dd:"+str(dd_choosen)+" h:"+str(hit_played),"UTF-8"))
 
         #print(keep_going, player_bet, player_wallet) # for debug porposes
         #if keep_going == 100:
@@ -274,7 +281,7 @@ for genx in range(generations):
     #        print(bcolors.WARNING + "Plyer got the black jack!" + bcolors.ENDC)
     #        print("Dealer's hand: "+ dealer.cards_in_hand(dealer_hand))  # what is dealer's hand
     #        print("You get your bet 3:2")
-            player_wins = False
+            player_wins = False # no need to pay a general bonus, blackjack
             player_wallet = player_wallet + player_bet*(3/2) # Blackjack 3:2 premium  
             break
           if player_score > 21:
@@ -282,11 +289,11 @@ for genx in range(generations):
     #        print("Current score: " + str(player_score))
     #        print('')
     #        print(bcolors.FAIL + "Oh no!  You went bust!" + bcolors.ENDC )
-            player_wins = False
+            player_wins = False  # no need to pay a general bonus, player is busted! 
             in_game = False
           if len(player_hand) > 4:
     #       print(bcolors.WARNING + "Wow!  You got a 'Five Card Charlie'!  You Win!" + bcolors.ENDC)
-            player_wins = True
+            player_wins = True  # to pay a general bonus  2:1
             in_game = False
     #    else:
     #       print("Current hand: " + dealer.cards_in_hand(player_hand))
@@ -308,20 +315,20 @@ for genx in range(generations):
             in_game = False
           elif len(dealer_hand) > 4:
       #       print("The dealder got a 'Five Card Charlie'.  You lose!")
-            player_wins = False
+            player_wins = False  # no need to pay a general bonus, dealer won
             in_game = False
           elif dealer_score == player_score:
       #       print(bcolors.OKGREEN + "Tie! Bet refunded." + bcolors.ENDC)
             player_wallet = player_wallet + player_bet
-            player_wins = False
+            player_wins = False  # no need to pay a general bonus, paid already
             in_game = False
           elif dealer_score == 21:
       #       print(bcolors.WARNING + "Dealer got Blackjack! You lose!" + bcolors.ENDC)
-            player_wins = False
+            player_wins = False  # no need to pay a general bonus, dealer won
             in_game = False        
           elif dealer_score > player_score:
     #        print(bcolors.FAIL + "The dealer beat you!  You lose!" + bcolors.ENDC)
-            player_wins = False
+            player_wins = False  # no need to pay a general bonus, dealer won
             in_game = False
           else:
     #        print(bcolors.OKBLUE + "You beat the dealer!  You win!" +  bcolors.ENDC)
