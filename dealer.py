@@ -61,9 +61,13 @@ the_deck = [("Ace♥︎", 11, "ace-of-hearts.png"), ("2♥︎", 2, "two-of-heart
 # when given a list, this function will choose an item in the list, remove it from the list, and return it.
 # it is intended to choose a card out of a list representing a deck, remove it from the deck list,
 # and return it to a list representing a player's hand.
-def draw_card(x):
-  drawn_card = random.choice(x)
-  x.remove(drawn_card)
+def draw_card(x,playing_deck_flagged):
+  while True:
+    card_number=random.randint(0, 51) # choose randomly card from deck
+    if playing_deck_flagged[card_number]:  # was this card did not choosen before?
+      playing_deck_flagged[card_number]=False # if not, mark it as choosen
+      drawn_card = x[card_number]  # get related card value
+      break    
   return drawn_card
 
 # this function takes the intergers from the card tuples and puts them into a list of values.
